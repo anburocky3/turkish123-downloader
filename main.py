@@ -31,7 +31,7 @@ movie_title = ''
 def search_movies(query):
     search_result_table = [["Index", "Drama Name"]]
 
-    print(searching_color + "[*] Searching for " + query + "....." + reset)
+    print(searching_color + "\n[*] Searching for " + query + "....." + reset + '\n')
 
     drama_details_urls = []
 
@@ -39,8 +39,6 @@ def search_movies(query):
 
     my_obj = {'s': query, 'action': 'searchwp_live_search', 'swpengine': 'default', 'swpquery': query}
     result = requests.post(base_url + 'wp-admin/admin-ajax.php', data=my_obj).text
-
-    print(len(result))
 
     if len(result) == 0:
         print(f"{fg('red')}[*] No results found for {query}!{reset}")
@@ -160,11 +158,13 @@ class TqdmUpTo(tqdm):
 #
 #
 def downloadVideoToLocal(download_url, file_name, download_location):
+    print(fg('green'))
     with TqdmUpTo(unit='B', unit_scale=True, unit_divisor=1024, miniters=1,
                   desc=file_name) as t:  # all optional kwargs
         urllib.request.urlretrieve(
             download_url, filename=download_location, reporthook=t.update_to, data=None)
         t.total = t.n
+        print(reset)
 
 
 #
@@ -199,7 +199,8 @@ def download_video_from_internet(video_key, movie_title, file_name):
     # Clear screen
     os.system('cls' if os.name == 'nt' else 'echo -e \\\\033c')
 
-    print(f"\n\nDownloading episode from {file_name} to {download_path}/{file_name} \n\n")
+    print(f"\n\nDownloading episode from {fg('yellow')}{file_name}{reset} to "
+          f"{fg('yellow')}{download_path}/{file_name}{reset} \n")
 
     if not os.path.exists(download_path):
         os.makedirs(download_path)
