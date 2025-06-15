@@ -1,6 +1,4 @@
-import json
 import os
-import re
 import sys
 import urllib.request
 from signal import signal, SIGINT
@@ -8,7 +6,7 @@ from signal import signal, SIGINT
 import requests
 from art import text2art
 from bs4 import BeautifulSoup
-from colored import fg, attr
+from colored import Fore, attr
 from terminaltables import AsciiTable
 from tqdm.auto import tqdm
 
@@ -16,14 +14,14 @@ sys.stdout = sys.__stdout__
 
 reset = attr('reset')
 
-searching_color = fg("green")
+searching_color = Fore.rgb(0, 255, 0)  # Green color
 
 rows, columns = os.popen('stty size', 'r').read().split()
 
-version = "1.0.0"
+version = "2.0.0"
 
 # BASE URL
-base_url = 'https://turkish123.com/'
+base_url = 'https://hds.turkish123.com/'
 
 movie_title = ''
 
@@ -41,7 +39,7 @@ def search_movies(query):
     result = requests.post(base_url + 'wp-admin/admin-ajax.php', data=my_obj).text
 
     if len(result) == 0:
-        print(f"{fg('red')}[*] No results found for {query}!{reset}")
+        print(f"{Fore.rgb(255, 0, 0)}[*] No results found for {query}!{reset}")  # Red color
         exit()
 
     soup = BeautifulSoup(result, "html.parser")
@@ -56,7 +54,7 @@ def search_movies(query):
         search_result_table.append([str(i + 1), drama_names[i]])
 
     table = AsciiTable(search_result_table)
-    table_color = fg("#66e887")
+    table_color = Fore.rgb(102, 232, 135)  # Light green color
     print(table_color + table.table + reset)
     print()
     print(searching_color + "[*] Total Results " +
@@ -72,10 +70,9 @@ def search_movies(query):
 
     # print(x.text)
 
-
 def yes_or_no(question):
     while "the answer is invalid":
-        reply = str(input(f'{fg("yellow")}{question}{reset} (y/n): ')).lower().strip()
+        reply = str(input(f'{Fore.rgb(255, 255, 0)}{question}{reset} (y/n) {Fore.rgb(128, 128, 128)}(default: y){reset}: ')).lower().strip() or 'y'  # Default to 'y'
         if reply[:1] == 'y':
             return True
         if reply[:1] == 'n':
@@ -85,23 +82,43 @@ def yes_or_no(question):
 def check_script(movie_detail_url, episode):
     result = requests.get(movie_detail_url).text
     soup = BeautifulSoup(result, "html.parser")
-    iframe_obj = soup.body.find(text=re.compile('<iframe width="560" height="315" src="'))
-    regex = r"(?:(?:https):\/\/)?[\w\/\-?=%.]+\.[\w\# \/\-&?=%.]+"
-    m = re.findall(regex, iframe_obj)
-    if m:
-        found_url = m[1]
-        # file_name = found_url.rsplit('#', 1)[-1]
-        file_name = f'Episode #{episode}.mp4'
-        video_key = found_url.rsplit('/', 1)[-1]
-        # print(f"""
-        # found_url: {found_url},
-        # file_name: 'Episode #{episode}.mp4,
-        # video_key: {video_key},
-        # movie_name: {movie_title}
-        # """)
-        download_video_from_internet(video_key, movie_title, file_name)
+
+    anchor_tag = soup.find('div', class_='download_navi').find('ul', class_='dlTabsi').find('li').find('a')
+
+    # Extract the href attribute
+    if anchor_tag:
+        src = anchor_tag['href']
+        print(f"Anchor href: {src}")
+        download_url = requests.get('https://tokvoy.com/d/spyprrodgshd_n').text
+        soup = BeautifulSoup(download_url, "html.parser")
+        download_orig = soup.find('input', attrs={'name': 'op'}).get('value')
+        movie_id = soup.find('input', attrs={'name': 'id'}).get('value')
+        mode = soup.find('input', attrs={'name': 'mode'}).get('value')
+        hash = soup.find('input', attrs={'name': 'hash'}).get('value')
+
+        download_video_from_internet(movie_id, download_orig, mode, hash, episode)
+
     else:
-        print(f'Error in finding: ${movie_detail_url}')
+        print("Anchor tag not found.")
+
+
+    # regex = r"(?:(?:https):\/\/)?[\w\/\-?=%.]+\.[\w\# \/\-&?=%.]+"
+    # print(f"{searching_color}[*] Checking - {iframe_obj} - {result}...{reset}")
+    # m = re.findall(regex, iframe_obj)
+    # if m:
+    #     found_url = m[1]
+    #     # file_name = found_url.rsplit('#', 1)[-1]
+    #     file_name = f'Episode #{episode}.mp4'
+    #     video_key = found_url.rsplit('/', 1)[-1]
+    #     # print(f"""
+    #     # found_url: {found_url},
+    #     # file_name: 'Episode #{episode}.mp4,
+    #     # video_key: {video_key},
+    #     # movie_name: {movie_title}
+    #     # """)
+    #     download_video_from_internet(video_key, movie_title, file_name)
+    # else:
+    #     print(f'Error in finding: ${movie_detail_url}')
 
 
 def get_episodes_url(movie_detail_url):
@@ -125,19 +142,19 @@ def get_episodes_url(movie_detail_url):
     #     search_result_table.append([str(i + 2), download_list[i]])
 
     table = AsciiTable(episode_result_table)
-    table_color = fg("#66e887")
+    table_color = Fore.rgb(102, 232, 135)  # Light green color
     print(table_color + table.table + reset)
     print()
     print(searching_color + "[*] This Movie/Drama(" + movie_title + ") has " +
           str(len(download_list)) + " Episodes.\n\n" + reset)
 
-    decision = yes_or_no('Do you want to download it all?')
+    decision = yes_or_no('Do you want to download it all?') or True
 
     if decision:
         for episode, single_movie in enumerate(download_list):
             check_script(single_movie, episode + 1)
     else:
-        print(f'{fg("red")}Okay Caption! Exiting...{reset}')
+        print(f'{Fore.rgb(255, 0, 0)}Okay Caption! Exiting...{reset}')  # Red color
         exit(0)
 
 
@@ -158,7 +175,7 @@ class TqdmUpTo(tqdm):
 #
 #
 def downloadVideoToLocal(download_url, file_name, download_location):
-    print(fg('green'))
+    print(Fore.rgb(0, 255, 0))  # Green color
     with TqdmUpTo(unit='B', unit_scale=True, unit_divisor=1024, miniters=1,
                   desc=file_name) as t:  # all optional kwargs
         urllib.request.urlretrieve(
@@ -169,43 +186,88 @@ def downloadVideoToLocal(download_url, file_name, download_location):
 
 #
 #
-def download_video_from_internet(video_key, movie_title, file_name):
+def download_video_from_internet(movie_id, download_orig, mode, hash, episode):
     headers = {
-        'authority': 'lajkema.com',
-        'content-length': '0',
-        'sec-ch-ua': '" Not A;Brand";v="99", "Chromium";v="90", "Google Chrome";v="90"',
-        'accept': '*/*',
-        'x-requested-with': 'XMLHttpRequest',
-        'sec-ch-ua-mobile': '?0',
-        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
-                      'Chrome/90.0.4430.93 Safari/537.36',
-        'origin': 'https://lajkema.com',
-        'sec-fetch-site': 'same-origin',
-        'sec-fetch-mode': 'cors',
-        'sec-fetch-dest': 'empty',
-        'referer': 'https://lajkema.com/f/' + video_key,
-        'accept-language': 'en-IN,en-GB;q=0.9,en-US;q=0.8,en;q=0.7',
+        'accept':'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+        'accept-language':'"en-IN,en;q=0.9,kn;q=0.8,en-GB;q=0.7,ta;q=0.6"',
+        'cache-control':'max-age=0',
+        'content-type':'application/x-www-form-urlencoded',
+        'origin':'https://tokvoy.com',
+        'priority':'u=0, i',
+        'referer': '"https://tokvoy.com/d/' + movie_id + '_' + mode,
+        'sec-ch-ua':'"Google Chrome";v="137", "Chromium";v="137", "Not/A)Brand";v="24"',
+        'sec-ch-ua-mobile':'?0',
+        'sec-ch-ua-platform':'"Windows"',
+        'sec-fetch-dest':'document',
+        'sec-fetch-mode':'navigate',
+        'sec-fetch-site':'same-origin',
+        'sec-fetch-user':'?1',
+        'upgrade-insecure-requests':'1',
+        'user-agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
+        'Cookie':'lang=1'
     }
 
-    response = requests.post('https://lajkema.com/api/source/' + video_key, headers=headers)
+    print(f"{searching_color}[*] Downloading {movie_title} - Episode {episode}...{reset}"'')
+
+    final_url = 'https://tokvoy.com/d/' + movie_id + '_' + mode
+
+    print(f'Requesting video: {final_url}')
+
+    my_obj = {'op': download_orig, 'id': movie_id, 'mode': mode, 'hash': hash}
+
+    response = requests.post(final_url, data=my_obj, headers=headers)
 
     response_data = response.text
-    data = json.loads(response_data)
 
-    downloadable_url = data['data'][0]['file']
+    soup = BeautifulSoup(response_data, "html.parser")
 
-    download_path = f'downloaded/{movie_title}'
+    download_span_tag = soup.find('span')
 
-    # Clear screen
-    os.system('cls' if os.name == 'nt' else 'echo -e \\\\033c')
+    if download_span_tag:
+        downloadable_url = download_span_tag.find('a')['href']
 
-    print(f"\n\nDownloading episode from {fg('yellow')}{file_name}{reset} to "
-          f"{fg('yellow')}{download_path}/{file_name}{reset} \n")
+        if downloadable_url:
+            file_name = f'Episode #{episode}.mp4'
 
-    if not os.path.exists(download_path):
-        os.makedirs(download_path)
+            download_path = f'downloaded/{movie_title}'
 
-    downloadVideoToLocal(downloadable_url, file_name, download_path + '/' + file_name)
+            # Clear screen
+            os.system('cls' if os.name == 'nt' else 'echo -e \\\\033c')
+
+            print(f"\n\nDownloading episode from {Fore.rgb(255, 255, 0)}{episode}{reset} to "
+              f"{Fore.rgb(255, 255, 0)}{download_path}/{file_name}{reset} \n")  # Yellow color
+
+
+            if not os.path.exists(download_path):
+                os.makedirs(download_path)
+
+            downloadVideoToLocal(downloadable_url, file_name, download_path + '/' + file_name)
+        else:
+            print(f'Error in finding: ${final_url}')
+    else:
+        print(f"{Fore.rgb(255, 0, 0)}Error: Download link not found in the response.{reset}")
+
+
+
+
+
+    # data = json.loads(response_data)
+    #
+    # downloadable_url = data['data'][0]['file']
+    #
+    # download_path = f'downloaded/{movie_title}'
+    #
+    # # Clear screen
+    # os.system('cls' if os.name == 'nt' else 'echo -e \\\\033c')
+    #
+    # print(f"\n\nDownloading episode from {Fore.rgb(255, 255, 0)}{file_name}{reset} to "
+    #   f"{Fore.rgb(255, 255, 0)}{download_path}/{file_name}{reset} \n")  # Yellow color
+    #
+    #
+    # if not os.path.exists(download_path):
+    #     os.makedirs(download_path)
+    #
+    # downloadVideoToLocal(downloadable_url, file_name, download_path + '/' + file_name)
 
 
 # getVideo()
@@ -213,25 +275,25 @@ def download_video_from_internet(video_key, movie_title, file_name):
 
 
 def show_main_screen():
-    os.system("title " + "Turkish123 Downloader  Anbuselvan Rocky")
+    os.system("title " + "Turkish123 Downloader  Anbuselvan Annamalai")
     os.system('cls' if os.name == 'nt' else 'echo -e \\\\033c')
 
     available_columns = int(columns)
 
     art = text2art("Turkish  123   GRABBER")
-    print(fg("red") + art + reset)
-    print(f"{fg('#0ecf12')}*" * available_columns + reset)
+    print(Fore.rgb(255, 0, 0) + art + reset)  # Red color
+    print(f"{Fore.rgb(14, 207, 18)}*" * available_columns + reset)  # Green color
     print(
-        f"{fg('#0ecf12')}\t\t Developed by:{reset} {fg('#fff')}Anbuselvan Rocky,{reset} {fg('#48B8FF')}v"
+        f"{Fore.rgb(14, 207, 18)}\t\t Developed by:{reset} {Fore.rgb(255, 255, 255)}Anbuselvan Rocky,{reset} {Fore.rgb(72, 184, 255)}v"
         f"{version}{reset}".center(available_columns))
-    print(f"{fg('#0ecf12')}*" * available_columns + "\n" + reset)
+    print(f"{Fore.rgb(14, 207, 18)}*" * available_columns + "\n" + reset)
 
     movie_name = input("What movie are you searching?: \t")
     search_movies(movie_name)
 
 
 def handler(signal_received, frame):
-    print(f"{fg('red')} \n\nWant to quit?. Exiting gracefully.. Good Bye!" + reset)
+    print(f"{Fore.rgb(255, 0, 0)} \n\nWant to quit?. Exiting gracefully.. Good Bye!" + reset)  # Red color
     sys.exit(0)
 
 

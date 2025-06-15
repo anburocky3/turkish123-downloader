@@ -1,6 +1,6 @@
-art==6.5
-beautifulsoup4==4.13.4
-colored==2.3.0
-Requests==2.32.4
-terminaltables==3.1.10
-tqdm==4.66.3
+art~=5.2
+beautifulsoup4~=4.9.3
+colored~=1.4.2
+Requests~=2.25.1
+terminaltables~=3.1.0
+tqdm~=4.60.0
